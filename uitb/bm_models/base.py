@@ -253,11 +253,11 @@ class BaseBMModel(ABC):
 
     # Copy bm-model folder
     src = parent_path(inspect.getfile(cls))
-    shutil.copytree(src, os.path.join(dst, src.stem), dirs_exist_ok=True)
+    shutil.copytree(src, os.path.join(dst, src.stem), dirs_exist_ok=True, ignore=shutil.ignore_patterns('*.pyc'))
 
     # Copy assets
     shutil.copytree(os.path.join(src, "assets"), os.path.join(simulator_folder, package_name, "assets"),
-                    dirs_exist_ok=True)
+                    dirs_exist_ok=True, ignore=shutil.ignore_patterns('*.pyc'))
 
     # Copy effort models
     shutil.copyfile(os.path.join(base_file.parent, "effort_models.py"), os.path.join(dst, "effort_models.py"))

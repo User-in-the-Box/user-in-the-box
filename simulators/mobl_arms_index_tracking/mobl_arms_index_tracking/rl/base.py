@@ -24,7 +24,7 @@ class BaseRLModel(ABC):
 
     # Copy the rl library folder
     src = parent_path(inspect.getfile(cls))
-    shutil.copytree(src, os.path.join(dst, src.stem), dirs_exist_ok=True)
+    shutil.copytree(src, os.path.join(dst, src.stem), dirs_exist_ok=True, ignore=shutil.ignore_patterns('*.pyc'))
 
     # Copy this file
     base_file = pathlib.Path(__file__)

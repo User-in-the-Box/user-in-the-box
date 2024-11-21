@@ -160,12 +160,12 @@ class BaseModule(ABC):
       file.write("from ." + ".".join(modules[3:]) + " import " + cls.__name__)
 
     # Copy module folder
-    shutil.copytree(src, os.path.join(modality, src.stem), dirs_exist_ok=True)
+    shutil.copytree(src, os.path.join(modality, src.stem), dirs_exist_ok=True, ignore=shutil.ignore_patterns('*.pyc'))
 
     # Copy assets if they exist
     if os.path.isdir(os.path.join(src, "assets")):
       shutil.copytree(os.path.join(src, "assets"), os.path.join(simulator_folder, package_name, "assets"),
-                      dirs_exist_ok=True)
+                      dirs_exist_ok=True, ignore=shutil.ignore_patterns('*.pyc'))
 
   def close(self, **kwargs):
     """ Perform any necessary clean up. """

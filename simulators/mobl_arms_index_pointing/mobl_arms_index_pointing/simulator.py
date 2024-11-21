@@ -196,13 +196,13 @@ class Simulator(gym.Env):
 
     # Copy utils
     shutil.copytree(os.path.join(parent_path(src), "utils"), os.path.join(simulator_folder, package_name, "utils"),
-                    dirs_exist_ok=True)
+                    dirs_exist_ok=True, ignore=shutil.ignore_patterns('*.pyc'))
     # Copy train
     shutil.copytree(os.path.join(parent_path(src), "train"), os.path.join(simulator_folder, package_name, "train"),
-                    dirs_exist_ok=True)
+                    dirs_exist_ok=True, ignore=shutil.ignore_patterns('*.pyc'))
     # Copy test
     shutil.copytree(os.path.join(parent_path(src), "test"), os.path.join(simulator_folder, package_name, "test"),
-                    dirs_exist_ok=True)
+                    dirs_exist_ok=True, ignore=shutil.ignore_patterns('*.pyc'))
 
   @classmethod
   def _initialise(cls, config, simulator_folder, run_parameters):

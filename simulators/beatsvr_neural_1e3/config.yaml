@@ -67,6 +67,6 @@ rl:
   target_kl: 1.0
   save_freq: 5_000_000
 version: 1.1.0
-package_name: beatsvr_early_termination_bimanual_neural_1e3_contact
-gym_name: uitb:beatsvr_early_termination_bimanual_neural_1e3_contact-v0
-built: '2024-03-08 20:53:01'
+package_name: beatsvr_neural_1e3
+gym_name: uitb:beatsvr_neural_1e3-v0
+built: '2024-11-21 13:30:51'

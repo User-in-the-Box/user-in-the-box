@@ -30,6 +30,12 @@ class BaseBMModel(ABC):
     # Get an rng
     self._rng = np.random.default_rng(kwargs.get("random_seed", None))
 
+    # Reset type
+    self._reset_type = kwargs.get("reset_type", "epsilon_uniform")
+    ## valid reset types: 
+    _valid_reset_types = ("zero", "epsilon_uniform", "range_uniform")
+    assert self._reset_type in _valid_reset_types, f"Invalid reset type '{self._reset_type} (valid types are {_valid_reset_types})."
+
     # Total number of actuators
     self._nu = bm_model.nu
 
@@ -103,6 +109,99 @@ class BaseBMModel(ABC):
     self._constantnoise_rng = np.random.default_rng(kwargs.get("random_seed", None))
     self._constantnoise_acc = 0  #only used for red/Brownian noise
 
+  def _reset_zero(self, model, data):
+    """ Resets the biomechanical model. """
+
+    # Set joint angles and velocities to zero
+    nq = len(self._independent_qpos)
+    qpos = np.zeros((nq,))
+    qvel =  np.zeros((nq,))
+
+    # Randomly sample act within unit interval
+    act = self._rng.uniform(low=np.zeros((self._na,)), high=np.ones((self._na,)))
+
+    # Set qpos and qvel
+    data.qpos[self._dependent_qpos] = 0
+    data.qpos[self._independent_qpos] = qpos
+    data.qvel[self._dependent_dofs] = 0
+    data.qvel[self._independent_dofs] = qvel
+    data.act[self._muscle_actuators] = act
+
+    # Sample random initial values for motor activation
+    self._motor_act = self._rng.uniform(low=np.zeros((self._nm,)), high=np.ones((self._nm,)))
+    # Reset smoothed average of motor actuator activation
+    self._motor_smooth_avg = np.zeros((self._nm,))
+
+    # Reset accumulative noise
+    self._sigdepnoise_acc = 0
+    self._constantnoise_acc = 0
+  
+  def _reset_epsilon_uniform(self, model, data):
+    """ Resets the biomechanical model. """
+
+    # Randomly sample qpos and qvel around zero values, and act within unit interval
+    nq = len(self._independent_qpos)
+    qpos = self._rng.uniform(low=np.ones((nq,))*-0.05, high=np.ones((nq,))*0.05)
+    qvel = self._rng.uniform(low=np.ones((nq,))*-0.05, high=np.ones((nq,))*0.05)
+    act = self._rng.uniform(low=np.zeros((self._na,)), high=np.ones((self._na,)))
+
+    # Set qpos and qvel
+    ## TODO: ensure that constraints are initially satisfied
+    data.qpos[self._dependent_qpos] = 0
+    data.qpos[self._independent_qpos] = qpos
+    data.qvel[self._dependent_dofs] = 0
+    data.qvel[self._independent_dofs] = qvel
+    data.act[self._muscle_actuators] = act
+
+    # Sample random initial values for motor activation
+    self._motor_act = self._rng.uniform(low=np.zeros((self._nm,)), high=np.ones((self._nm,)))
+    # Reset smoothed average of motor actuator activation
+    self._motor_smooth_avg = np.zeros((self._nm,))
+
+    # Reset accumulative noise
+    self._sigdepnoise_acc = 0
+    self._constantnoise_acc = 0
+
+  def _reset_range_uniform(self, model, data):
+    """ Resets the biomechanical model. """
+
+    # Randomly sample qpos within joint range, qvel around zero values, and act within unit interval
+    nq = len(self._independent_qpos)
+    jnt_range = model.jnt_range[self._independent_joints]
+    qpos = self._rng.uniform(low=jnt_range[:, 0], high=jnt_range[:, 1])
+    qvel = self._rng.uniform(low=np.ones((nq,))*-0.05, high=np.ones((nq,))*0.05)
+    act = self._rng.uniform(low=np.zeros((self._na,)), high=np.ones((self._na,)))
+
+    # Set qpos and qvel
+    data.qpos[self._independent_qpos] = qpos
+    # data.qpos[self._dependent_qpos] = 0
+    data.qvel[self._independent_dofs] = qvel
+    # data.qvel[self._dependent_dofs] = 0
+    self.ensure_dependent_joint_angles(model, data)
+    data.act[self._muscle_actuators] = act
+
+    # Sample random initial values for motor activation
+    self._motor_act = self._rng.uniform(low=np.zeros((self._nm,)), high=np.ones((self._nm,)))
+    # Reset smoothed average of motor actuator activation
+    self._motor_smooth_avg = np.zeros((self._nm,))
+
+    # Reset accumulative noise
+    self._sigdepnoise_acc = 0
+    self._constantnoise_acc = 0
+
+  def ensure_dependent_joint_angles(self, model, data):
+    """ Adjusts virtual joints according to active joint constraints. """
+
+    for (virtual_joint_id, physical_joint_id, poly_coefs) in zip(
+            model.eq_obj1id[
+                (model.eq_type == 2) & (data.eq_active == 1)],
+            model.eq_obj2id[
+                (model.eq_type == 2) & (data.eq_active == 1)],
+            model.eq_data[(model.eq_type == 2) &
+                                        (data.eq_active == 1), 4::-1]):
+        if physical_joint_id >= 0:
+            data.joint(virtual_joint_id).qpos = np.polyval(poly_coefs, data.joint(physical_joint_id).qpos)
+
   ############ The methods below you should definitely overwrite as they are important ############
 
   @classmethod
@@ -122,28 +221,14 @@ class BaseBMModel(ABC):
 
   def _reset(self, model, data):
     """ Resets the biomechanical model. """
-
-    # Randomly sample qpos, qvel, act around zero values
-    nq = len(self._independent_qpos)
-    qpos = self._rng.uniform(low=np.ones((nq,))*-0.05, high=np.ones((nq,))*0.05)
-    qvel = self._rng.uniform(low=np.ones((nq,))*-0.05, high=np.ones((nq,))*0.05)
-    act = self._rng.uniform(low=np.zeros((self._na,)), high=np.ones((self._na,)))
-
-    # Set qpos and qvel
-    data.qpos[self._dependent_qpos] = 0
-    data.qpos[self._independent_qpos] = qpos
-    data.qvel[self._dependent_dofs] = 0
-    data.qvel[self._independent_dofs] = qvel
-    data.act[self._muscle_actuators] = act
-
-    # Sample random initial values for motor activation
-    self._motor_act = self._rng.uniform(low=np.zeros((self._nm,)), high=np.ones((self._nm,)))
-    # Reset smoothed average of motor actuator activation
-    self._motor_smooth_avg = np.zeros((self._nm,))
-
-    # Reset accumulative noise
-    self._sigdepnoise_acc = 0
-    self._constantnoise_acc = 0
+    if self._reset_type == "zero":
+      return self._reset_zero(model, data)
+    elif self._reset_type == "epsilon_uniform":
+      return self._reset_epsilon_uniform(model, data)
+    elif self._reset_type == "range_uniform":
+      return self._reset_range_uniform(model, data)
+    else:
+      raise NotImplementedError
 
   def _update(self, model, data):
     """ Update the biomechanical model after a step has been taken in the simulator. """
@@ -253,11 +338,11 @@ class BaseBMModel(ABC):
 
     # Copy bm-model folder
     src = parent_path(inspect.getfile(cls))
-    shutil.copytree(src, os.path.join(dst, src.stem), dirs_exist_ok=True)
+    shutil.copytree(src, os.path.join(dst, src.stem), dirs_exist_ok=True, ignore=shutil.ignore_patterns('*.pyc'))
 
     # Copy assets
     shutil.copytree(os.path.join(src, "assets"), os.path.join(simulator_folder, package_name, "assets"),
-                    dirs_exist_ok=True)
+                    dirs_exist_ok=True, ignore=shutil.ignore_patterns('*.pyc'))
 
     # Copy effort models
     shutil.copyfile(os.path.join(base_file.parent, "effort_models.py"), os.path.join(dst, "effort_models.py"))

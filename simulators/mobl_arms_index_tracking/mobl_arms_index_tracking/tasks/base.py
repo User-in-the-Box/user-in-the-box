@@ -198,18 +198,18 @@ class BaseTask(ABC):
 
     # Copy env folder (without apps subdirectory)
     src = parent_path(inspect.getfile(cls))
-    # shutil.copytree(src, os.path.join(dst, src.stem), dirs_exist_ok=True)
-    shutil.copytree(src, os.path.join(dst, src.stem), dirs_exist_ok=True, ignore=shutil.ignore_patterns('apps'))
+    # shutil.copytree(src, os.path.join(dst, src.stem), dirs_exist_ok=True, ignore=shutil.ignore_patterns('*.pyc'))
+    shutil.copytree(src, os.path.join(dst, src.stem), dirs_exist_ok=True, ignore=shutil.ignore_patterns('apps', '*.pyc'))
 
     # Copy application subdir (optional)
     if app_executable is not None:
       src_app = parent_path(os.path.join(src, app_executable))
-      shutil.copytree(src_app, os.path.join(dst, src.stem, os.path.dirname(app_executable)), dirs_exist_ok=True)
+      shutil.copytree(src_app, os.path.join(dst, src.stem, os.path.dirname(app_executable)), dirs_exist_ok=True, ignore=shutil.ignore_patterns('*.pyc'))
 
     # Copy assets if they exist
     if os.path.isdir(os.path.join(src, "assets")):
       shutil.copytree(os.path.join(src, "assets"), os.path.join(simulator_folder, package_name, "assets"),
-                      dirs_exist_ok=True)
+                      dirs_exist_ok=True, ignore=shutil.ignore_patterns('*.pyc'))
 
   @classmethod
   def initialise(cls, task_kwargs):
