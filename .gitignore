@@ -10,6 +10,7 @@ uitb/tasks/unity/apps/*/app_logs/
 uitb/tasks/unity/apps/
 
 #simulators/
+simulators/
 datasets/
 trained/
 simulators_nasAI8/
