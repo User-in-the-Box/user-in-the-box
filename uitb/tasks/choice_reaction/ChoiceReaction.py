@@ -18,7 +18,6 @@ class ChoiceReaction(BaseTask):
     
     # For LLC policy  #TODO: remove?
     self._target_qpos = [0,0,0,0,0]
-    
 
     # Get buttons
     self._buttons = [f"button-{idx}" for idx in range(4)]
@@ -59,6 +58,16 @@ class ChoiceReaction(BaseTask):
     #model.cam_pos[model.camera_name2id('for_testing')] = np.array([-0.8, -0.6, 1.5])
     #model.cam_quat[model.camera_name2id('for_testing')] = np.array(
     #  [0.718027, 0.4371043, -0.31987, -0.4371043])
+
+    # Safe initial button size and position as a base for future manipulations
+    self.button_defaults = {
+      btn: {
+        "size": model.geom(btn).size.copy(),
+        "position": model.body(btn).pos.copy()
+      }
+      for btn in self._buttons
+    }
+    # self.scale_buttons(model, data, size_factor=5)
 
   @classmethod
   def initialise(cls, task_kwargs):
@@ -171,3 +180,30 @@ class ChoiceReaction(BaseTask):
     # Time features
     targets_hit = -1.0 + 2*(self._trial_idx/self._max_trials)
     return np.array([targets_hit])
+
+  def scale_buttons(self, model, data, size_factor: float):
+    """Scales button sizes and adjusts positions accordingly for curriculum learning."""
+    scale_vector = np.array([size_factor, size_factor, 1.0])
+    for btn in self._buttons:
+      default_size = self.button_defaults[btn]["size"]
+      default_pos = self.button_defaults[btn]["position"]
+
+      # Scale size
+      scaled_size = default_size * scale_vector
+      model.geom(btn).size = scaled_size
+
+      # Determine shift direction based on button name
+      shift_x = 0.5 * (scaled_size[0] - default_size[0])
+      shift_y = 0.5 * (scaled_size[1] - default_size[1])
+
+      # Adjust sign of shift depending on button layout
+      if 'button-2' in btn or 'button-3' in btn:
+        shift_x *= -1  # right-side buttons shift left
+      if 'button-1' in btn or 'button-3' in btn:
+        shift_y *= -1  # top-side buttons shift down
+
+      # Apply offset to default position
+      new_pos = default_pos.copy()
+      new_pos[0] += shift_x
+      new_pos[1] += shift_y
+      model.body(btn).pos = new_pos
