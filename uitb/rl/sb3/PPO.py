@@ -114,19 +114,19 @@ class PPO(BaseRLModel):
 
     return config
 
-  def learn(self, wandb_callback, with_evaluation=False, eval_freq=400000, n_eval_episodes=5, eval_info_keywords=()):
+  def learn(self, callbacks, with_evaluation=False, eval_freq=400000, n_eval_episodes=5, eval_info_keywords=()):
     if with_evaluation:
         self.eval_env = Monitor(self.eval_env, info_keywords=eval_info_keywords)
         self.eval_freq = eval_freq // self.n_envs
         self.eval_callback = EvalCallback(self.eval_env, eval_freq=self.eval_freq, n_eval_episodes=n_eval_episodes, info_keywords=eval_info_keywords)
 
         self.model.learn(total_timesteps=self.total_timesteps,
-                         callback=[wandb_callback, self.checkpoint_callback, self.eval_callback, *self.callbacks],
+                         callback=callbacks + [self.checkpoint_callback, self.eval_callback, *self.callbacks],
                          info_keywords=self.info_keywords,
                          reset_num_timesteps=not self.training_resumed)
     else:
         self.model.learn(total_timesteps=self.total_timesteps,
-                         callback=[wandb_callback, self.checkpoint_callback, *self.callbacks],
+                         callback=callbacks + [self.checkpoint_callback, *self.callbacks],
                          info_keywords=self.info_keywords,
                          reset_num_timesteps=not self.training_resumed)
 
@@ -237,6 +237,7 @@ class Monitor_customops(Monitor):
         if self.needs_reset:
             raise RuntimeError("Tried to step environment that needs reset")
         observation, reward, terminated, truncated, info = self.env.step(action)
+
         self.rewards.append(float(reward))
         for key, op in self.info_keywords:
             if op in ["sum", "mean"]:
