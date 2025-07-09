@@ -71,7 +71,7 @@ class ChoiceReaction(BaseTask):
         }
 
         self.allign_buttons_in_plane(model)
-        self.scale_buttons(model, size_factor=5)  #### THIS SHOULD NOT HAPPEN ON EVALUATION: ONLY ON TRAINING
+        self.scale_buttons(model, size_factor=self.curriculumManager.get_difficulty())  #### THIS SHOULD NOT HAPPEN ON EVALUATION: ONLY ON TRAINING
 
     @classmethod
     def initialise(cls, task_kwargs):
