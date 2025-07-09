@@ -344,3 +344,31 @@ class EvalCallback(EventCallback):
     """
     if self.callback:
         self.callback.update_locals(locals_)
+
+
+class CurriculumCallback(BaseCallback):
+    def __init__(self, manager, verbose=0):
+        super().__init__(verbose)
+        self.update_count = 0
+        self.manager = manager
+
+    def _on_step(self) -> bool:
+        reward = self.locals["rewards"]
+        self.manager.report_reward(reward)
+
+        return True
+
+    def _on_rollout_end(self) -> None:
+        # self.update_count += 1
+        """# Get some performance metric (you must track/store this yourself)
+        mean_reward = self.locals['rollout_buffer'].rewards.mean()
+
+        if self.verbose:
+            print(f"Update #{self.update_count}, mean reward: {mean_reward:.2f}")
+
+        # Here you can modify environment difficulty
+        for env_idx in range(self.training_env.num_envs):
+            env = self.training_env.envs[env_idx]
+            if hasattr(env, 'set_difficulty'):
+                env.set_difficulty(self.update_count)"""
+

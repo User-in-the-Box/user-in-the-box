@@ -8,7 +8,7 @@ from ..base import BaseTask
 
 class ChoiceReaction(BaseTask):
 
-    def __init__(self, model, data, end_effector, shoulder, **kwargs):
+    def __init__(self, model, data, end_effector, shoulder, curriculumManager=None, **kwargs):
         super().__init__(model, data, **kwargs)
 
         # This task requires an end-effector and shoulder to be defined
@@ -45,7 +45,7 @@ class ChoiceReaction(BaseTask):
         # Get shoulder position
         shoulder_pos = getattr(data, self._shoulder[0])(self._shoulder[1]).xpos.copy()
 
-        # Update button positions #### THIS SHOULD NOT HAPPEN ON EVALUATION: ONLY ON TRAINING
+        # Update button positions  #### THIS SHOULD NOT HAPPEN ON EVALUATION: ONLY ON TRAINING
         model.body("button-0").pos = shoulder_pos + [0.41, -0.07, -0.15]
         model.body("button-1").pos = shoulder_pos + [0.41, 0.07, -0.15]
         model.body("button-2").pos = shoulder_pos + [0.5, -0.07, -0.05]
@@ -59,6 +59,8 @@ class ChoiceReaction(BaseTask):
         # model.cam_quat[model.camera_name2id('for_testing')] = np.array(
         #  [0.718027, 0.4371043, -0.31987, -0.4371043])
 
+        self.curriculumManager = curriculumManager
+
         # Safe initial button size and position as a base for future manipulations
         self.button_defaults = {
             btn: {
@@ -69,11 +71,10 @@ class ChoiceReaction(BaseTask):
         }
 
         self.allign_buttons_in_plane(model)
-        self.scale_buttons(model, size_factor=5) #### THIS SHOULD NOT HAPPEN ON EVALUATION: ONLY ON TRAINING
+        self.scale_buttons(model, size_factor=5)  #### THIS SHOULD NOT HAPPEN ON EVALUATION: ONLY ON TRAINING
 
     @classmethod
     def initialise(cls, task_kwargs):
-
         assert "end_effector" in task_kwargs, "End-effector must be defined for this environment"
         end_effector = task_kwargs["end_effector"][1]
 
@@ -91,7 +92,6 @@ class ChoiceReaction(BaseTask):
         return tree
 
     def _update(self, model, data):
-
         # Set defaults
         terminated = False
         truncated = False
@@ -139,6 +139,8 @@ class ChoiceReaction(BaseTask):
         # Calculate reward
         reward = self._reward_function.get(self, dist, self._info.copy())
 
+        self.curriculumManager.report_reward(reward=reward)
+
         return reward, terminated, truncated, self._info.copy()
 
     def _choose_button(self, model, data):
@@ -164,6 +166,10 @@ class ChoiceReaction(BaseTask):
         return state
 
     def _reset(self, model, data):
+        import sys
+        import os
+        sys.stdout = open(f"/home/sc.uni-leipzig.de/wm78fuxe/proclog/{os.getpid()}.txt", "a+", buffering=1)
+        print("thsays: reset called")
 
         # Reset counters
         self._steps_since_last_hit = 0
@@ -176,6 +182,14 @@ class ChoiceReaction(BaseTask):
         # Choose a new button
         self._choose_button(model, data)
 
+        try:
+            difficulty = self.curriculumManager.get_difficulty()
+            self.scale_buttons(model, size_factor=difficulty)
+            print(f"INFO: Scaled the buttons to {difficulty}")
+        except AttributeError:
+            print("ERROR: Curriculum Manager not present (yet). Using default difficulty (10).")
+            print(self.curriculumManager)
+            self.scale_buttons(model, size_factor=10)
         return self._info
 
     def get_stateful_information(self, model, data):
@@ -219,6 +233,7 @@ class ChoiceReaction(BaseTask):
             model.body(btn).quat = quat.copy()
 
     def scale_buttons(self, model, size_factor: float):
+        print("thsays: scale buttons called")
         """Scales button sizes and repositions them using local frame to keep inner corner fixed."""
         scale_vector = np.array([size_factor, size_factor, 1.0])
 
@@ -238,3 +253,6 @@ class ChoiceReaction(BaseTask):
             normalized_shift_direction = shift_direction / np.linalg.norm(shift_direction)
             shift_vector = normalized_shift_direction * shift_length * 2
             model.body(btn).pos = default_pos + shift_vector
+
+    def set_curriculum_manager(self, cm):
+        self.curriculumManager = cm

@@ -6,6 +6,8 @@ from datetime import datetime
 import wandb
 from wandb.integration.sb3 import WandbCallback
 
+from uitb.rl.sb3.callbacks import CurriculumCallback
+from stable_baselines3.common.callbacks import CallbackList
 from uitb.simulator import Simulator
 from uitb.utils.functions import output_path, timeout_input
 
@@ -30,7 +32,7 @@ if __name__=="__main__":
   config_file_path = args.config_file_path
 
   # Build the simulator
-  simulator_folder = Simulator.build(config_file_path)
+  simulator_folder, curriculumManager = Simulator.build(config_file_path)
 
   # Initialise
   simulator = Simulator.get(simulator_folder)
@@ -116,6 +118,17 @@ if __name__=="__main__":
 
   # Start the training
   # rl_model.learn(WandbCallback(verbose=2))
-  rl_model.learn(WandbCallback(verbose=2),
-                 with_evaluation=with_evaluation, eval_freq=eval_freq, eval_info_keywords=eval_info_keywords)
+
+  # Set Curriculum Learning Callback
+  callbacks = [
+    WandbCallback(verbose=2),
+    CurriculumCallback(manager=curriculumManager, verbose=1)
+  ]
+
+  rl_model.learn(
+    callbacks=callbacks,
+    with_evaluation=with_evaluation,
+    eval_freq=eval_freq,
+    eval_info_keywords=eval_info_keywords
+  )
   run.finish()

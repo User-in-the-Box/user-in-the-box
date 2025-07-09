@@ -22,6 +22,8 @@ from .perception.base import Perception
 from .utils.rendering import Camera, Context
 from .utils.functions import output_path, parent_path, is_suitable_package_name, parse_yaml, write_yaml
 
+from uitb.train.curriculum_manager import CurriculumManager
+
 
 class Simulator(gym.Env):
   """
@@ -146,7 +148,7 @@ class Simulator(gym.Env):
       simulation.write(file, encoding='unicode')
 
     # Initialise the simulator
-    model, _, _, _, _, _ = \
+    model, _, _, _, _, _, curriculumManager = \
       cls._initialise(config, simulator_folder, {**run_parameters, "build": True})
 
     # Now that simulator has been initialised, everything should be set. Now we want to save the xml file again, but
@@ -165,7 +167,7 @@ class Simulator(gym.Env):
     # Save config
     write_yaml(config, os.path.join(simulator_folder, "config.yaml"))
 
-    return simulator_folder
+    return simulator_folder, curriculumManager
 
   @classmethod
   def _clone(cls, simulator_folder, package_name):
@@ -258,13 +260,21 @@ class Simulator(gym.Env):
     for cb in run_parameters.get("callbacks", []):
       callbacks[cb["name"]] = cls.get_class(cb["cls"])(cb["name"], **cb["kwargs"])
 
+    # Initiate CurriculumManager
+    cl_mode = config.get("rl.curriculum_learning", "none")
+    total_timesteps = config["rl"]["total_timesteps"]
+    num_workers = config["rl"]["num_workers"]
+
+    curriculumManager = CurriculumManager(num_workers=num_workers, total_timesteps=total_timesteps, mode=cl_mode)
+
+
     # Now initialise the actual classes; model and data are input to the inits so that stuff can be modified if needed
     # (e.g. move target to a specific position wrt to a body part)
-    task = task_cls(model, data, **{**task_kwargs, **callbacks, **run_parameters})
+    task = task_cls(model, data, curriculumManager=curriculumManager, **{**task_kwargs, **callbacks, **run_parameters})
     bm_model = bm_cls(model, data, **{**bm_kwargs, **callbacks, **run_parameters})
     perception = Perception(model, data, bm_model, perception_modules, {**callbacks, **run_parameters})
 
-    return model, data, task, bm_model, perception, callbacks
+    return model, data, task, bm_model, perception, callbacks, curriculumManager
 
   @classmethod
   def get(cls, simulator_folder, render_mode="rgb_array", render_mode_perception="embed", render_show_depths=False, run_parameters=None, use_cloned=True):
@@ -363,7 +373,7 @@ class Simulator(gym.Env):
     self._run_parameters.update(run_parameters or {})
 
     # Initialise simulation
-    self._model, self._data, self.task, self.bm_model, self.perception, self.callbacks = \
+    self._model, self._data, self.task, self.bm_model, self.perception, self.callbacks, _ = \
       self._initialise(self._config, self._simulator_folder, self._run_parameters)
 
     # Set action space TODO for now we assume all actuators have control signals between [-1, 1]
@@ -601,7 +611,7 @@ class Simulator(gym.Env):
 
   def reset(self, seed=None):
     """ Reset the simulator and return an observation. """
-
+    print("thsays: reset in simulator is called")
     super().reset(seed=seed)
 
     # Reset sim
