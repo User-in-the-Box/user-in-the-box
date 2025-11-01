@@ -349,13 +349,8 @@ class EvalCallback(EventCallback):
 class CurriculumCallback(BaseCallback):
     def __init__(self, manager, verbose=0):
         super().__init__(verbose)
-        self.update_count = 0
-        self.manager = manager
 
     def _on_step(self) -> bool:
-        reward = self.locals["rewards"]
-        self.manager.report_reward(reward)
-
         return True
 
     def _on_rollout_end(self) -> None:

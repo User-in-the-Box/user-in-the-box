@@ -168,7 +168,8 @@ class ChoiceReaction(BaseTask):
     def _reset(self, model, data):
         import sys
         import os
-        sys.stdout = open(f"/home/sc.uni-leipzig.de/wm78fuxe/proclog/{os.getpid()}.txt", "a+", buffering=1)
+        sys.stdout = open(f"/home/sc.uni-leipzig.de/wm78fuxe/user-in-the-box/logs/{os.environ['SLURM_JOB_ID']}_{os.environ['SLURM_JOB_NAME']}/{os.getpid()}.txt", "a+", buffering=1)
+        sys.stderr = sys.stdout
         print("thsays: reset called")
 
         # Reset counters

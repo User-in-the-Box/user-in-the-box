@@ -1,0 +1,52 @@
+simulator_name: "mobl_arms_index_choice_reaction_test_3"
+
+simulation:
+  bm_model:
+    cls: "MoblArmsIndex"
+    kwargs:
+      shoulder_variant: "none"
+      effort_model:
+        cls: "Neural"
+        kwargs:
+          weight: 1e-4
+  task:
+    cls: "ChoiceReaction"
+    kwargs:
+      end_effector: ["geom", "hand_2distph"]
+      shoulder: ["body", "humphant"]
+  perception_modules:
+    - cls: "vision.FixedEye"
+      kwargs:
+        resolution: [120, 80]
+        channels: [0, 1, 2, 3]
+        pos: "0 0 1.2"
+        quat: "0.583833 0.399104 -0.399421 -0.583368"
+    - cls: "proprioception.BasicWithEndEffectorPosition"
+      kwargs:
+        end_effector: ["geom", "hand_2distph"]
+  run_parameters:
+    action_sample_freq: 20
+
+rl:
+  algorithm: "PPO"
+  curriculum_learning: linear
+  policy_type: "policies.MultiInputActorCriticPolicyTanhActions"
+  policy_kwargs:
+    activation_fn: "torch.nn.LeakyReLU"
+    net_arch: [64, 64]
+    log_std_init: 0.0
+    features_extractor_class: "feature_extractor.FeatureExtractor"
+    normalize_images: False
+  lr: 
+    function: "schedule.linear_schedule"
+    kwargs:
+      initial_value: 5e-5
+      min_value: 1e-7
+      threshold: 0.8
+  total_timesteps: 1_250_000
+  device: "cuda"
+  num_workers: 2
+  nsteps: 2000
+  batch_size: 128
+  target_kl: 1.0
+  save_freq: 50y_000
