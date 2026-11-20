@@ -18,6 +18,7 @@ class Context:
     """
 
     self._max_resolution = max_resolution
+    self._closed = False
 
     # Not really sure if we need this
     self._contexts_lock = threading.Lock()
@@ -37,7 +38,26 @@ class Context:
       mujoco.mjr_setBuffer(mujoco.mjtFramebuffer.mjFB_OFFSCREEN.value, self.mujoco)
 
     # Can't leave de-allocation for destructors, will raise errors/warnings
-    atexit.register(self._gl.free)
+    atexit.register(self.close)
+
+  def make_current(self):
+    if not self._closed and self._gl is not None:
+      self._gl.make_current()
+      mujoco.mjr_setBuffer(mujoco.mjtFramebuffer.mjFB_OFFSCREEN.value, self.mujoco)
+
+  def close(self):
+    if self._closed:
+      return
+    self._closed = True
+    atexit.unregister(self.close)
+    with self._contexts_lock:
+      if getattr(self, "_gl", None) is not None:
+        self._gl.make_current()
+        if getattr(self, "mujoco", None) is not None and hasattr(self.mujoco, "free"):
+          self.mujoco.free()
+        self._gl.free()
+        self.mujoco = None
+        self._gl = None
 
 
 class Camera:
@@ -170,6 +190,8 @@ class Camera:
 
   def _render_on_gl_thread(self):
     """Performs only those rendering calls that require an OpenGL context."""
+
+    self._context.make_current()
 
     # Render the scene.
     mujoco.mjr_render(self._rect, self._scene,

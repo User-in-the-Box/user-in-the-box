@@ -79,7 +79,7 @@ class RectangularCuboidGrid(BaseModule):
       resolution[idx] = 2
 
     # Add sites and sensors
-    for i in range(np.prod(resolution)):
+    for i in range(int(np.prod(resolution))):
 
       site_name = f"{kwargs['geom']}-site-{i}"
 
@@ -92,5 +92,5 @@ class RectangularCuboidGrid(BaseModule):
   def get_observation(self, model, data, info=None):
     obs = np.zeros(len(self._sensors),)
     for idx, sensor in enumerate(self._sensors):
-      obs[idx] = data.sensor(sensor).data / 100
+      obs[idx] = np.asarray(data.sensor(sensor).data).item() / 100
     return obs

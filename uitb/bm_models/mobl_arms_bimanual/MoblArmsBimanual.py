@@ -42,22 +42,22 @@ class MoblArmsBimanual(BaseBMModel):
     # Update shoulder equality constraints
     # NOTE! The left arm updates have not been tested
     if self.shoulder_variant.startswith("patch"):
+      sh_elv_r = np.asarray(data.joint('shoulder_elv_r').qpos).item()
+      sh_elv_l = np.asarray(data.joint('shoulder_elv_l').qpos).item()
       model.equality("shoulder1_r2_con_r").data[1] = \
-        -((np.pi - 2 * data.joint('shoulder_elv_r').qpos) / np.pi)
+        -((np.pi - 2 * sh_elv_r) / np.pi)
       model.equality("shoulder1_r2_con_l").data[1] = \
-        -((np.pi - 2 * data.joint('shoulder_elv_l').qpos) / np.pi)
+        -((np.pi - 2 * sh_elv_l) / np.pi)
 
       if self.shoulder_variant == "patch-v2":
-        data.joint('shoulder_rot_r').range[:] = \
+        elv_ang_r = np.asarray(data.joint('elv_angle_r').qpos).item()
+        elv_ang_l = np.asarray(data.joint('elv_angle_l').qpos).item()
+        model.joint('shoulder_rot_r').range[:] = \
           np.array([-np.pi / 2, np.pi / 9]) - \
-          2 * np.min((data.joint('shoulder_elv_r').qpos,
-                      np.pi - data.joint('shoulder_elv_r').qpos)) / np.pi \
-          * data.joint('elv_angle_r').qpos
-        data.joint('shoulder_rot_l').range[:] = \
+          2 * min(sh_elv_r, np.pi - sh_elv_r) / np.pi * elv_ang_r
+        model.joint('shoulder_rot_l').range[:] = \
           np.array([-np.pi / 2, np.pi / 9]) - \
-          2 * np.min((data.joint('shoulder_elv_l').qpos,
-                      np.pi - data.joint('shoulder_elv_l').qpos)) / np.pi \
-          * data.joint('elv_angle_l').qpos
+          2 * min(sh_elv_l, np.pi - sh_elv_l) / np.pi * elv_ang_l
 
       # Do a forward calculation
       mujoco.mj_forward(model, data)

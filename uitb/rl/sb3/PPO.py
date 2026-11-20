@@ -28,6 +28,11 @@ from ..base import BaseRLModel
 from .callbacks import EvalCallback
 
 
+def _load_cloned_simulator(simulator_folder: str):
+    from uitb.simulator import Simulator
+    return Simulator.get(simulator_folder)
+
+
 class PPO(BaseRLModel):
 
   def __init__(self, simulator, checkpoint_path=None, wandb_id=None, info_keywords=()):
@@ -45,11 +50,12 @@ class PPO(BaseRLModel):
     # with the variable name as first and the episode operation (e.g., "sum", "mean", "final" (default)) as second string
     self.info_keywords = tuple({tuple(k) for k in (run_parameters.get("info_keywords", []) + list(info_keywords))})
     
-    # Initialise parallel envs
+    # Initialise parallel envs (use DummyVecEnv for 1 worker; picklable loader for spawn/SubprocVecEnv)
     self.n_envs = rl_config["num_workers"]
     Monitor = Monitor_customops  #use Monitor_customops instead of Monitor class in make_vec_env
-    parallel_envs = make_vec_env(simulator.__class__, n_envs=self.n_envs,
-                                 seed=run_parameters.get("random_seed", None), vec_env_cls=SubprocVecEnv,
+    vec_cls = DummyVecEnv if self.n_envs == 1 else SubprocVecEnv
+    parallel_envs = make_vec_env(_load_cloned_simulator, n_envs=self.n_envs,
+                                 seed=run_parameters.get("random_seed", None), vec_env_cls=vec_cls,
                                  monitor_kwargs={"info_keywords": self.info_keywords},
                                  env_kwargs={"simulator_folder": simulator_folder})
     
@@ -114,19 +120,21 @@ class PPO(BaseRLModel):
 
     return config
 
-  def learn(self, wandb_callback, with_evaluation=False, eval_freq=400000, n_eval_episodes=5, eval_info_keywords=()):
+  def learn(self, wandb_callback=None, with_evaluation=False, eval_freq=400000, n_eval_episodes=5, eval_info_keywords=()):
     if with_evaluation:
         self.eval_env = Monitor(self.eval_env, info_keywords=eval_info_keywords)
         self.eval_freq = eval_freq // self.n_envs
         self.eval_callback = EvalCallback(self.eval_env, eval_freq=self.eval_freq, n_eval_episodes=n_eval_episodes, info_keywords=eval_info_keywords)
 
+        callbacks = [cb for cb in [wandb_callback, self.checkpoint_callback, self.eval_callback, *self.callbacks] if cb is not None]
         self.model.learn(total_timesteps=self.total_timesteps,
-                         callback=[wandb_callback, self.checkpoint_callback, self.eval_callback, *self.callbacks],
+                         callback=callbacks,
                          info_keywords=self.info_keywords,
                          reset_num_timesteps=not self.training_resumed)
     else:
+        callbacks = [cb for cb in [wandb_callback, self.checkpoint_callback, *self.callbacks] if cb is not None]
         self.model.learn(total_timesteps=self.total_timesteps,
-                         callback=[wandb_callback, self.checkpoint_callback, *self.callbacks],
+                         callback=callbacks,
                          info_keywords=self.info_keywords,
                          reset_num_timesteps=not self.training_resumed)
 

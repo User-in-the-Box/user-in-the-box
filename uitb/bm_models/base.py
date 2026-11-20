@@ -56,11 +56,12 @@ class BaseBMModel(ABC):
     self._motor_actuators = [mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, actuator_name)
                             for actuator_name in self._motor_actuator_names]
 
-    # Get joint names (dependent and independent)
+    # Get joint names (dependent and independent); support both MuJoCo 2.x (eq_active) and 3.x+ (eq_active0)
     self._joint_names = [mujoco.mj_id2name(bm_model, mujoco.mjtObj.mjOBJ_JOINT, i) for i in range(bm_model.njnt)]
+    eq_active = getattr(bm_model, "eq_active0", getattr(bm_model, "eq_active", None))
     self._dependent_joint_names = {self._joint_names[idx] for idx in
-                                  np.unique(bm_model.eq_obj1id[bm_model.eq_active.astype(bool)])} \
-      if bm_model.eq_obj1id is not None else set()
+                                  np.unique(bm_model.eq_obj1id[eq_active.astype(bool)])} \
+      if (bm_model.eq_obj1id is not None and eq_active is not None) else set()
     self._independent_joint_names = set(self._joint_names) - self._dependent_joint_names
 
     # Sort the names to preserve original ordering (not really necessary but looks nicer)

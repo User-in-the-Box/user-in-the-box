@@ -95,7 +95,7 @@ class FixedEye(BaseModule):
     if body == "worldbody":
       simulation_root.find("worldbody").append(eye)
     else:
-      eye_body = simulation_root.find(f".//body[@name='{body}'")
+      eye_body = simulation_root.find(f".//body[@name='{body}']")
       assert eye_body is not None, f"Body with name {body} was not found"
       eye_body.append(eye)
 

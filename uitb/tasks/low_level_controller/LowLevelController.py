@@ -142,13 +142,14 @@ class LowLevelController(BaseTask):
   
   @staticmethod
   def _ensure_joint_eq_constraints(model, qpos):
-    # adjust virtual joints according to active constraints:
+    # adjust virtual joints according to active constraints (MuJoCo 2.x eq_active / 3.x+ eq_active0):
+    eq_active = getattr(model, "eq_active0", getattr(model, "eq_active", None))
     _eq_constraints = zip(model.eq_obj1id[
-                        (model.eq_type == 2) & (model.eq_active == 1)],
+                        (model.eq_type == 2) & (eq_active == 1)],
                     model.eq_obj2id[
-                        (model.eq_type == 2) & (model.eq_active == 1)],
+                        (model.eq_type == 2) & (eq_active == 1)],
                     model.eq_data[(model.eq_type == 2) &
-                                  (model.eq_active == 1), 4::-1])
+                                  (eq_active == 1), 4::-1])
     for (virtual_joint_id, physical_joint_id, poly_coefs) in _eq_constraints:
       qpos[virtual_joint_id] = np.polyval(poly_coefs, qpos[physical_joint_id])
 

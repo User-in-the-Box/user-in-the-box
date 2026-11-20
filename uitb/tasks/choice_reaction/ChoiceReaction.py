@@ -87,7 +87,7 @@ class ChoiceReaction(BaseTask):
     self._info["new_button_generated"] = False
 
     # Check if the correct button has been pressed with suitable force
-    force = data.sensor(self._current_button).data
+    force = np.asarray(data.sensor(self._current_button).data).item()
     
     # Get end-effector position and target position
     ee_position = data.geom(self._end_effector).xpos

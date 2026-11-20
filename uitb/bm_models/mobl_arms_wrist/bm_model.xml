@@ -1,12 +1,13 @@
 <mujoco model="MoBL_ARMS_Upper_Limb_Model_OpenSim">
     <compiler angle="radian"/>
-    <option collision="predefined"/>
-    <default class="mobl-arms">
+    <default>
+        <default class="mobl-arms">
         <joint limited="true" stiffness="2" armature="0.1" damping="0.5"/>
-        <geom margin="0.001" rgba="0.8 0.6 0.4 1"/>
+        <geom contype="0" conaffinity="0" margin="0.001" rgba="0.8 0.6 0.4 1"/>
         <site size="0.001 0.005 0.005" rgba="0.5 0.5 0.5 0.0"/>
         <tendon rgba="0.95 0.3 0.3 1"/>
         <general ctrllimited="true" ctrlrange="0 1" dyntype="muscle" gaintype="muscle" biastype="muscle" dynprm="0.01 0.04 0 0 0 0 0 0 0 0" gainprm="0.75 1.05 -1 2000 0.5 1.6 1.5 1.3 1.2 0" biasprm="0.75 1.05 -1 2000 0.5 1.6 1.5 1.3 1.2 0"/>
+        </default>
     </default>
     <asset>
         <mesh name="thorax" file="assets/thorax.stl" />
