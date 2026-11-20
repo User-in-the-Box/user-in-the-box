@@ -61,14 +61,15 @@ def ReachEnvelopeCheck(env,
                 # maximally extend the arm:
                 env._data.joint("elbow_flexion").qpos = env._model.joint("elbow_flexion").range[0]
 
-                # adjust virtual joints according to active constraints:
+                # adjust virtual joints according to active constraints (MuJoCo 2.x eq_active / 3.x+ eq_active0):
+                eq_active = getattr(env._model, "eq_active0", getattr(env._model, "eq_active", None))
                 for (virtual_joint_id, physical_joint_id, poly_coefs) in zip(
                         env._model.eq_obj1id[
-                            (env._model.eq_type == 2) & (env._model.eq_active == 1)],
+                            (env._model.eq_type == 2) & (eq_active == 1)],
                         env._model.eq_obj2id[
-                            (env._model.eq_type == 2) & (env._model.eq_active == 1)],
+                            (env._model.eq_type == 2) & (eq_active == 1)],
                         env._model.eq_data[(env._model.eq_type == 2) &
-                                                    (env._model.eq_active == 1), 4::-1]):
+                                                    (eq_active == 1), 4::-1]):
                     if physical_joint_id >= 0:
                         env._data.joint(virtual_joint_id).qpos = np.polyval(poly_coefs, env._data.joint(physical_joint_id).qpos)
                 # qpos[env._model.joint_name2id('shoulder1_r2')] = -qpos[env._model.joint_name2id(

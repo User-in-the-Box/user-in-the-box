@@ -18,20 +18,21 @@ setup(
    url='https://github.com/aikkala/user-in-the-box',
    license='LICENSE',
    description='Modeling and simulating HCI interaction tasks in MuJoCo',
-   long_description=open('README.md').read(),
+   long_description=open('README.md', encoding='utf-8').read(),
    python_requires='>=3.8',
    install_requires=[
        "gymnasium>=0.28",
-       "pygame",
+       "pygame; python_version < '3.14'",
+       "pygame-ce; python_version >= '3.14'",
        "pynput",
-       "mujoco==2.3.5",
+       "mujoco>=2.3.5",
        "imageio",
-       "stable_baselines3==2.2.1",
+       "stable_baselines3>=2.2.1",
        "torch",
        "wandb", "tensorboard",
        "numpy", "matplotlib", "scipy",
        "opencv-python",
        "ruamel.yaml",
-       "zmq"
+       "pyzmq"
    ],
 )

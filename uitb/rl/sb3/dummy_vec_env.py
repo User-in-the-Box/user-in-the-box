@@ -6,7 +6,13 @@ import gymnasium as gym
 import numpy as np
 
 from stable_baselines3.common.vec_env.base_vec_env import VecEnv, VecEnvIndices, VecEnvObs, VecEnvStepReturn
-from stable_baselines3.common.vec_env.util import copy_obs_dict, dict_to_obs, obs_space_info
+from stable_baselines3.common.vec_env.util import dict_to_obs, obs_space_info
+
+try:
+    from stable_baselines3.common.vec_env.util import copy_obs_dict
+except ImportError:
+    def copy_obs_dict(obs: dict[Any, np.ndarray]) -> dict[Any, np.ndarray]:
+        return {k: np.copy(v) for k, v in obs.items()}
 
 
 class DummyVecEnv(VecEnv):

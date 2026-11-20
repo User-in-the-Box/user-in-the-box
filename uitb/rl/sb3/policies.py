@@ -108,7 +108,7 @@ class ActorCriticPolicyStdDecay(BasePolicy):
     # Default network architecture, from stable-baselines
     if net_arch is None:
       if features_extractor_class == FlattenExtractor:
-        net_arch = [dict(pi=[64, 64], vf=[64, 64])]
+        net_arch = dict(pi=[64, 64], vf=[64, 64])
       else:
         net_arch = []
 
@@ -416,7 +416,7 @@ class ActorCriticPolicyTanhActions(BasePolicy):
       if features_extractor_class == NatureCNN:
         net_arch = []
       else:
-        net_arch = [dict(pi=[64, 64], vf=[64, 64])]
+        net_arch = dict(pi=[64, 64], vf=[64, 64])
 
     self.net_arch = net_arch
     self.activation_fn = activation_fn

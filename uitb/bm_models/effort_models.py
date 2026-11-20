@@ -42,7 +42,7 @@ class Composite(BaseEffortModel):
     self._weight = weight
 
   def cost(self, model, data):
-    mujoco.cymj._mj_inverse(model, data) # TODO does this work with new mujoco python bindings?
+    mujoco.mj_inverse(model, data)
     angle_acceleration = np.sum(data.qacc[self._bm_model.independent_dofs] ** 2)
     energy = np.sum(data.qvel[self._bm_model.independent_dofs] ** 2
                     * data.qfrc_inverse[self._bm_model.independent_dofs] ** 2)

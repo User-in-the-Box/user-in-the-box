@@ -146,8 +146,9 @@ class Simulator(gym.Env):
       simulation.write(file, encoding='unicode')
 
     # Initialise the simulator
+    build_params = {**run_parameters, "build": True}
     model, _, _, _, _, _ = \
-      cls._initialise(config, simulator_folder, {**run_parameters, "build": True})
+      cls._initialise(config, simulator_folder, build_params)
 
     # Now that simulator has been initialised, everything should be set. Now we want to save the xml file again, but
     # mujoco only is able to save the latest loaded xml file (which is either the task or bm model xml files which are
@@ -158,6 +159,9 @@ class Simulator(gym.Env):
 
     # Save the modified model also as binary for faster loading
     mujoco.mj_saveModel(model, simulation_file+".mjcf", None)
+
+    if "rendering_context" in build_params:
+      build_params["rendering_context"].close()
 
     # Input built time into config
     config["built"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -670,9 +674,10 @@ class Simulator(gym.Env):
           # Convert 2D depth arrays to 3D heatmap arrays
           if ocular_img.ndim == 2:
             if self._render_show_depths:
-              ocular_img = matplotlib.pyplot.imshow(ocular_img, cmap=matplotlib.pyplot.cm.jet, interpolation='bicubic').make_image('TkAgg', unsampled=True)[0][
-              ..., :3]
-              matplotlib.pyplot.close()  #delete image
+              cmap = matplotlib.colormaps["jet"] if hasattr(matplotlib, "colormaps") else matplotlib.cm.get_cmap("jet")
+              d_min, d_max = float(np.min(ocular_img)), float(np.max(ocular_img))
+              norm_depth = (ocular_img - d_min) / max(d_max - d_min, 1e-8)
+              ocular_img = np.uint8(cmap(norm_depth)[..., :3] * 255)
             else:
               continue
 
@@ -723,15 +728,6 @@ class Simulator(gym.Env):
     pygame.event.pump()
     self._render_clock.tick(self.fps)
     pygame.display.flip()
-
-  def close(self):
-    """ Close the rendering window (if self._render_mode == 'human')."""
-    super().close()
-    if self._render_window is not None:
-      import pygame
-
-      pygame.display.quit()
-      pygame.quit()
 
   @property
   def fps(self):
@@ -811,6 +807,13 @@ class Simulator(gym.Env):
     This function is inherited from gym.Env. It should be automatically called when this object is garbage collected
      or the program exists, but that doesn't seem to be the case. This function will be called if this object has been
      initialised in the context manager fashion (i.e. using the 'with' statement). """
+    super().close()
+    if self._render_window is not None:
+      pygame.display.quit()
+      pygame.quit()
+      self._render_window = None
     self.task.close(**kwargs)
     self.perception.close(**kwargs)
     self.bm_model.close(**kwargs)
+    if "rendering_context" in self._run_parameters and hasattr(self._run_parameters["rendering_context"], "close"):
+      self._run_parameters["rendering_context"].close()

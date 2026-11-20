@@ -19,15 +19,15 @@ class MoblArmsIndex(BaseBMModel):
 
     # Update shoulder equality constraints
     if self.shoulder_variant.startswith("patch"):
+      sh_elv = np.asarray(data.joint('shoulder_elv').qpos).item()
       model.equality("shoulder1_r2_con").data[1] = \
-        -((np.pi - 2 * data.joint('shoulder_elv').qpos) / np.pi)
+        -((np.pi - 2 * sh_elv) / np.pi)
 
       if self.shoulder_variant == "patch-v2":
-        data.joint('shoulder_rot').range[:] = \
+        elv_ang = np.asarray(data.joint('elv_angle').qpos).item()
+        model.joint('shoulder_rot').range[:] = \
           np.array([-np.pi / 2, np.pi / 9]) - \
-          2 * np.min((data.joint('shoulder_elv').qpos,
-                      np.pi - data.joint('shoulder_elv').qpos)) / np.pi \
-          * data.joint('elv_angle').qpos
+          2 * min(sh_elv, np.pi - sh_elv) / np.pi * elv_ang
 
       # Do a forward calculation
       mujoco.mj_forward(model, data)

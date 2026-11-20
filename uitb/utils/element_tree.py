@@ -8,11 +8,29 @@ def create(root, name):
 
 def copy_or_append(name, src, dst):
   element = src.find(name)
+  if element is None:
+    return
 
   if dst.find(name) is None:
-    dst.append(element)
+    if name == "default" and "class" in element.attrib:
+      wrapper = ET.Element("default")
+      wrapper.append(element)
+      dst.append(wrapper)
+    else:
+      dst.append(element)
   else:
-    dst.find(name).append(element)
+    dst_el = dst.find(name)
+    if name == "default" and "class" not in element.attrib:
+      for child in element:
+        # Avoid duplicate unnamed tag collisions in top-level <default> when task already set them
+        if "class" not in child.attrib and dst_el.find(child.tag) is not None:
+          dst_child = dst_el.find(child.tag)
+          for k, v in child.attrib.items():
+            dst_child.attrib.setdefault(k, v)
+        else:
+          dst_el.append(child)
+    else:
+      dst_el.append(element)
 
 def copy_children(name, src, dst, exclude=None):
 

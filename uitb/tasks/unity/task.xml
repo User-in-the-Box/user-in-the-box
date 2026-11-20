@@ -1,8 +1,10 @@
 <?xml version="1.0"?>
 <mujoco>
     <compiler angle="radian"/>
-    <option collision="predefined" timestep="0.002"/>
-    <size njmax="1000" nconmax="400"/>
+    <option timestep="0.002"/>
+    <default>
+        <geom contype="0" conaffinity="0"/>
+    </default>
     <asset>
         <texture type="skybox" builtin="gradient" rgb1="1 1 1" rgb2="0.6 0.8 1" width="256" height="256"/>
         <mesh name="controller-right" file="assets/oculus-quest-1-controller-right.stl"/>
